@@ -46,3 +46,22 @@ export async function createEventAction(formData: FormData) {
     throw new Error("Something went wrong");
   }
 }
+export async function createInviteLinkAction(eventId: string) {
+  const session = await getSession();
+  const userId = session.data?.user.id;
+  const owns = await prisma.event.findFirst({
+    where: { id: eventId, ownerUserId: userId },
+    select: { id: true },
+  });
+
+  if (!owns) {
+    throw new Error("Unauthorized");
+  }
+
+  const token = crypto.randomUUID().replace(/-/g, "");
+  await prisma.eventInvite.upsert({
+    where: { eventId },
+    update: { token },
+    create: { eventId, token },
+  });
+}

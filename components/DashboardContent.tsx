@@ -4,6 +4,29 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
+import type { RsvpStatus as PrismaRsvpStatus } from "@/app/generated/prisma/enums";
+
+export function countByStatus(rsvps: { status: PrismaRsvpStatus }[]) {
+  let goingCount = 0;
+  let maybeCount = 0;
+  let notGoingCount = 0;
+
+  for (const r of rsvps) {
+    if (r.status === "going") {
+      goingCount++;
+    } else if (r.status === "maybe") {
+      maybeCount++;
+    } else if (r.status === "not_going") {
+      notGoingCount++;
+    }
+  }
+
+  return {
+    goingCount,
+    maybeCount,
+    notGoingCount,
+  };
+}
 
 const DashboardContent = async ({ userId }: { userId: string }) => {
   const rows = await prisma.event.findMany({
@@ -18,6 +41,11 @@ const DashboardContent = async ({ userId }: { userId: string }) => {
       title: true,
       location: true,
       eventDate: true,
+      rsvp: {
+        select: {
+          status: true,
+        },
+      },
     },
   });
   const events = rows.map((e) => ({
@@ -25,6 +53,7 @@ const DashboardContent = async ({ userId }: { userId: string }) => {
     title: e.title,
     location: e.location,
     eventDate: e.eventDate ? e.eventDate.toISOString() : null,
+    ...countByStatus(e.rsvp),
   }));
 
   return (
@@ -65,9 +94,11 @@ const DashboardContent = async ({ userId }: { userId: string }) => {
                 </div>
 
                 <div className="flex flex-wrap gap-2 text-xs">
-                  <Badge variant={"outline"} />
-                  <Badge variant={"outline"} />
-                  <Badge variant={"outline"} />
+                  <Badge>Going: {event.goingCount}</Badge>
+                  <Badge variant={"secondary"}>Maybe: {event.maybeCount}</Badge>
+                  <Badge variant={"outline"}>
+                    Not Going: {event.notGoingCount}
+                  </Badge>
                 </div>
                 <p>
                   {event.eventDate

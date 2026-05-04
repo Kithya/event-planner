@@ -10,5 +10,6 @@ export const config = {
     // Protected routes requiring authentication
     "/account/:path*",
     "/dashboard/:path*",
+    "/events/:path*",
   ],
 };
