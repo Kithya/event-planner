@@ -5,8 +5,29 @@ import { countByStatus } from "./DashboardContent";
 import { Button } from "./ui/button";
 import Link from "next/link";
 import { Badge } from "./ui/badge";
-import { Card, CardContent, CardHeader } from "./ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { createInviteLinkAction } from "@/lib/actions/events";
+import type { RsvpStatus as PrismaRsvpStatus } from "@/app/generated/prisma/enums";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "./ui/table";
+
+const rsvpStatusBadgeClass: Record<PrismaRsvpStatus, string> = {
+  going: "border-emerald-500/25 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+  maybe: "border-amber-500/25 bg-amber-500/15 text-amber-700 dark:text-amber-300",
+  not_going: "border-rose-500/25 bg-rose-500/15 text-rose-700 dark:text-rose-300",
+};
+
+const rsvpStatusLabel: Record<PrismaRsvpStatus, string> = {
+  going: "Going",
+  maybe: "Maybe",
+  not_going: "Not going",
+};
 
 const EventDetailContent = async ({
   userId,
@@ -52,6 +73,25 @@ const EventDetailContent = async ({
     null,
     event.id,
   );
+  const rsvpRows = await prisma.eventRsvp.findMany({
+    where: { eventId },
+    orderBy: { respondedAt: "desc" },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      status: true,
+      respondedAt: true,
+    },
+  });
+
+  const rsvps = rsvpRows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    email: r.email,
+    status: r.status,
+    respondedAt: r.respondedAt.toISOString(),
+  }));
 
   const inviteUrl = event.inviteToken
     ? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/invite/${event.inviteToken}`
@@ -103,6 +143,44 @@ const EventDetailContent = async ({
           <form action={createInviteActionForEvent}>
             <Button type="submit">Generate Link</Button>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Attendance</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {rsvps.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No responses yet.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Updated</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rsvps.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell>{r.name}</TableCell>
+                    <TableCell>{r.email}</TableCell>
+                    <TableCell>
+                      <Badge className={rsvpStatusBadgeClass[r.status]}>
+                        {rsvpStatusLabel[r.status]}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {new Date(r.respondedAt).toLocaleDateString()}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
