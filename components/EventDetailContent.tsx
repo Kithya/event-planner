@@ -7,7 +7,6 @@ import Link from "next/link";
 import { Badge } from "./ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { createInviteLinkAction } from "@/lib/actions/events";
-import type { RsvpStatus as PrismaRsvpStatus } from "@/app/generated/prisma/enums";
 import {
   Table,
   TableBody,
@@ -16,18 +15,6 @@ import {
   TableHeader,
   TableRow,
 } from "./ui/table";
-
-const rsvpStatusBadgeClass: Record<PrismaRsvpStatus, string> = {
-  going: "border-emerald-500/25 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
-  maybe: "border-amber-500/25 bg-amber-500/15 text-amber-700 dark:text-amber-300",
-  not_going: "border-rose-500/25 bg-rose-500/15 text-rose-700 dark:text-rose-300",
-};
-
-const rsvpStatusLabel: Record<PrismaRsvpStatus, string> = {
-  going: "Going",
-  maybe: "Maybe",
-  not_going: "Not going",
-};
 
 const EventDetailContent = async ({
   userId,
@@ -169,8 +156,8 @@ const EventDetailContent = async ({
                     <TableCell>{r.name}</TableCell>
                     <TableCell>{r.email}</TableCell>
                     <TableCell>
-                      <Badge className={rsvpStatusBadgeClass[r.status]}>
-                        {rsvpStatusLabel[r.status]}
+                      <Badge>
+                        {r.status === "not_going" ? "Not going" : r.status}
                       </Badge>
                     </TableCell>
                     <TableCell>

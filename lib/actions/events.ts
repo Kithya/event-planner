@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { getSession } from "../auth/server";
 import { prisma } from "../prisma";
 import { RsvpStatus } from "@/app/generated/prisma/enums";
@@ -52,8 +53,8 @@ export async function createEventAction(formData: FormData) {
     throw new Error("Unauthorized");
   }
 
-  try {
-    const created = await prisma.event.create({
+  const created = await prisma.event
+    .create({
       data: {
         ownerUserId: userId,
         title: input.title,
@@ -61,13 +62,14 @@ export async function createEventAction(formData: FormData) {
         location: input.location,
         eventDate: input.eventDate ? new Date(input.eventDate) : null,
       },
+    })
+    .catch((error) => {
+      console.error(error);
+      throw new Error("Something went wrong");
     });
 
-    redirect(`/events/${created.id}`);
-  } catch (error) {
-    console.log(error);
-    throw new Error("Something went wrong");
-  }
+  revalidatePath("/dashboard");
+  redirect(`/events/${created.id}`);
 }
 
 export async function createInviteLinkAction(eventId: string) {
@@ -88,6 +90,9 @@ export async function createInviteLinkAction(eventId: string) {
     update: { token },
     create: { eventId, token },
   });
+
+  revalidatePath(`/events/${eventId}`);
+  redirect(`/events/${eventId}`);
 }
 
 export async function submitOrUpdateRsvpAction(
@@ -130,5 +135,6 @@ export async function submitOrUpdateRsvpAction(
     },
   });
 
+  revalidatePath(`/invite/${token}`);
   redirect(`/invite/${token}?submitted=1`);
 }
